@@ -34,6 +34,22 @@ class SerialManager:
                 return listener
             return decorator
 
+    def stop_listening(self, component_id: int, event_id: int, listener):
+        if listener:
+            components = self._listeners.get(component_id, None)
+            if components is not None:
+                events = components.get(event_id, None)
+                if events is not None:
+                    try:
+                        events.remove(listener)
+                    except ValueError:
+                        pass
+                if len(events) == 0:
+                    components.pop(event_id)
+                    if len(components) == 0:
+                        self._listeners.pop(component_id)
+    
+
     def send(self, component_id: int = None, event_id: int = None, payload: bytes = None):
         if component_id is not None:
             payload = (microbit_uint_to_bytes(component_id, 1) +
@@ -67,6 +83,26 @@ class SerialManager:
 
     async def _add_to_send_queue(self, payload: bytes):
         await self._queue.put(payload)
+
+    async def recv(self, component_id: int, event_id: int, full_payload=False):
+        queue = asyncio.Queue()
+        def f(payload):
+            queue.put_nowait(payload)
+        self.listen(component_id, event_id, f, full_payload)
+        payload = await queue.get()
+        self.stop_listening(component_id, event_id, f)
+        return payload
+
+    async def recv_send(self, component_id: int, event_id: int,
+                        to_send_c_id=None, to_send_e_id=None, payload=None, full_payload=False):
+        queue = asyncio.Queue()
+        def f(p):
+            queue.put_nowait(p)
+        self.listen(component_id, event_id, f, full_payload)
+        self.send(to_send_c_id, to_send_e_id, payload)
+        ret = await queue.get()
+        self.stop_listening(component_id, event_id, f)
+        return ret
 
     async def _send_loop(self):
         while True:
