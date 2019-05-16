@@ -12,7 +12,7 @@ def microbit_uint_to_bytes(int_: int, length: int):
 
 
 class SerialManager:
-    def __init__(self, device, baudrate=19200):
+    def __init__(self, device, baudrate=9600):
         self._device = device
         self._baudrate = baudrate
         self._listeners = dict()
@@ -43,20 +43,20 @@ class SerialManager:
         try:
             self._queue.put_nowait(payload)
         except asyncio.QueueFull:
-            self._event_loop.create_task(self._add_to_send_queue(payload))
+            self.event_loop.create_task(self._add_to_send_queue(payload))
 
     def __enter__(self):
-        self._event_loop = asyncio.get_event_loop()
-        self._event_loop.run_until_complete(self._init_serial_asyncio())
-        self._event_loop.create_task(self._loop())
-        self._event_loop.create_task(self._send_loop())
+        self.event_loop = asyncio.get_event_loop()
+        self.event_loop.run_until_complete(self._init_serial_asyncio())
+        self.event_loop.create_task(self._loop())
+        self.event_loop.create_task(self._send_loop())
         self._is_init = True
 
         return self
 
     def __exit__(self, exc_type, exc_value, traceback):
-        self._event_loop.run_forever()
-        self._event_loop.close()
+        self.event_loop.run_forever()
+        self.event_loop.close()
         self._is_init = False
 
     async def _init_serial_asyncio(self):
@@ -65,7 +65,7 @@ class SerialManager:
                 url=self._device,
                 baudrate=self._baudrate))
 
-    async def _add_to_send_queue(self, payload):
+    async def _add_to_send_queue(self, payload: bytes):
         await self._queue.put(payload)
 
     async def _send_loop(self):
@@ -76,7 +76,6 @@ class SerialManager:
             await self._writer.drain()
 
             self._queue.task_done()
-
 
     async def _loop(self):
         while True:
@@ -92,8 +91,8 @@ class SerialManager:
             payload = await self._reader.readexactly(length)
 
             for listener, full_payload in (self._listeners.get(component_id, {})
-                                            .get(event_id, [])):
+                                           .get(event_id, [])):
                 if full_payload:
                     listener(_component_id + _event_id + _length + payload)
                 else:
-                    listener(payload)    
+                    listener(payload)
