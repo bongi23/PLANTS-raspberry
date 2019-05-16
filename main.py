@@ -9,7 +9,7 @@ from time import sleep
 
 
 DEVICE = '/dev/ttyACM0'
-BAUDRATE = 9600
+BAUDRATE = 115200
 
 
 def main(serial: SerialManager):
@@ -26,13 +26,17 @@ def main(serial: SerialManager):
     def recv(payload: bytes):
         print("NETWORK_LAYER", "DEBUG", payload)
 
+    @serial.listen(100, 2)
+    def recv(payload: bytes):
+        print("APPLICATION:", payload)
+
     @serial.listen(102, 1)
     def recv(payload: bytes):
         print("APPLICATION_LAYER", "recv:", payload)
 
     # @serial.listen(120, 1)
     # def recv(payload: bytes):
-    #     print("NETWORK LAYER", payload)
+    #     print("MAC_LAYER", payload)
 
     network_layer(serial)
 
