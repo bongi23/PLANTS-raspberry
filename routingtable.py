@@ -17,18 +17,6 @@ class Node:
         return ret
 
 
-class DifferentSinkException(Exception):
-    pass
-
-
-class DifferentRouteException(Exception):
-    pass
-
-
-class RouteAlreadyInTableException(Exception):
-    pass
-
-
 class RoutingTable:
     def __init__(self):
         self.__routing_tree = Node(None)
