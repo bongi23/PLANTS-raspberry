@@ -56,37 +56,6 @@ class ApplicationLayer:
         self.__serial = None
 
 
-    async def send_sensing(self, microbit_id, sensor_name, sample_rate=None, min_val=None, max_val=None):
-        #TODO: create message
-        msg = DATA(COMPONENT_ID, SENSING_REQ)
-
-        msg += microbit_id
-        msg += sensor_name
-        if sample_rate is not None:
-            msg += ('B', 1)
-        else:
-            msg += ('B', 0)
-        if min_val is not None:
-            msg += ('B', 1)
-        else:
-            msg += ('B', 0)
-        if max_val is not None:
-            msg += ('B', 1)
-        else:
-            msg += ('B', 0)
-        if sample_rate is not None:
-            msg += sample_rate
-        if min_val is not None:
-            msg += min_val
-        if max_val is not None:
-            msg += max_val
-
-        resp = DATA(COMPONENT_ID, SENSING_RESP)
-        resp *= 'B'
-        resp(await self.__serial.recv_send(payload=bytes(msg), full_payload=True))
-
-        return resp.get_data()[0]
-
 
 
     def __call__(self, serial: SerialManager):

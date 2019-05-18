@@ -1,9 +1,16 @@
 from aiohttp import web, http_exceptions, ClientSession
-from application_layer import ApplicationLayer
+from serialprotocol import DATA
+from serial_manager import SerialManager
 
 routes = web.RouteTableDef()
 
-app_layer = None
+COMPONENT_ID = 50
+SENSING_RESP = 1
+SENSING_REQ = 2
+
+serial = None
+
+
 
 def check_int(t, name):
     try:
@@ -41,9 +48,9 @@ async def sensing_req(request):
         return web.Response(status=410)
 
 
-async def start_server(al: ApplicationLayer):
-    global app_layer
-    app_layer = al
+async def start_server(s: SerialManager):
+    global serial
+    serial = s
     app = web.Application()
     app.add_routes(routes)
     runner = web.AppRunner(app)
@@ -63,4 +70,36 @@ async def send_put(url, url_args=None, params=None, json=None):
     async with ClientSession() as session:
         async with session.put(url.format(*url_args), params=params, json=json) as resp:
             return resp
+
+
+async def send_sensing(serial, microbit_id, sensor_name, sample_rate=None, min_val=None, max_val=None):
+    #TODO: create message
+    msg = DATA(COMPONENT_ID, SENSING_REQ)
+
+    msg += microbit_id
+    msg += sensor_name
+    if sample_rate is not None:
+        msg += ('B', 1)
+    else:
+        msg += ('B', 0)
+    if min_val is not None:
+        msg += ('B', 1)
+    else:
+        msg += ('B', 0)
+    if max_val is not None:
+        msg += ('B', 1)
+    else:
+        msg += ('B', 0)
+    if sample_rate is not None:
+        msg += sample_rate
+    if min_val is not None:
+        msg += min_val
+    if max_val is not None:
+        msg += max_val
+
+    resp = DATA(COMPONENT_ID, SENSING_RESP)
+    resp *= 'B'
+    resp(await serial.recv_send(payload=bytes(msg), full_payload=True))
+
+    return resp.get_data()[0]
 

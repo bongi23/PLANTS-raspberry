@@ -45,7 +45,7 @@ def main(serial: SerialManager):
     app_layer(serial)
     network_layer(serial)
 
-    asyncio.create_task(start_server(app_layer))
+    asyncio.create_task(start_server(serial))
 
 
 if __name__ == '__main__':
