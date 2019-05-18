@@ -1,5 +1,3 @@
-#!/usr/bin/python3
-
 import signal
 import sys
 import asyncio
@@ -11,11 +9,11 @@ from time import sleep
 from network_manager import start_server
 
 
-DEVICE = '/dev/ttyACM0'
+DEVICE = '/dev/ttyACM4'
 BAUDRATE = 115200
 
 
-def main(serial: SerialManager):
+async def main(serial):
     global DEVICE
 
     args = sys.argv
@@ -27,15 +25,15 @@ def main(serial: SerialManager):
     network_layer = NetworkLayerSerialManager()
 
     @serial.listen(101, 1)
-    def recv1(payload: bytes):
+    def recv1(payload):
         print("NETWORK_LAYER", "DEBUG", payload)
 
     @serial.listen(100, 2)
-    def recv(payload: bytes):
+    def recv(payload):
         print("APPLICATION:", payload)
 
     @serial.listen(102, 1)
-    def recv2(payload: bytes):
+    def recv2(payload):
         print("APPLICATION_LAYER", "recv:", payload)
 
     # @serial.listen(120, 1)
@@ -53,6 +51,6 @@ if __name__ == '__main__':
 
     try:
         with SerialManager(DEVICE, BAUDRATE) as serial:
-            main(serial)
+            asyncio.run(main(serial))
     except Exception as exception:
         print(exception)

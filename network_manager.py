@@ -11,7 +11,6 @@ SENSING_REQ = 2
 serial = None
 
 
-
 def check_int(t, name):
     try:
         t = int(t)
@@ -25,6 +24,8 @@ def check_int(t, name):
 
 @routes.put('/sensing/{microbit_id}/{sensor_name}')
 async def sensing_req(request):
+    global serial
+
     microbit_id = request.match_info['microbit_id']
     check_int(microbit_id, 'microbit_id')
     sampling_time = request.query.get('sampling_time', None)
@@ -39,7 +40,7 @@ async def sensing_req(request):
 
     sensor_name = request.match_info['sensor_name']
     
-    resp = await app_layer.send_sensing(microbit_id, sensor_name, sampling_time, min_value, max_value)
+    resp = await send_sensing(serial, microbit_id, sensor_name, sampling_time, min_value, max_value)
     if resp == 0:
         return web.Response()
     elif resp == 1:
@@ -55,21 +56,28 @@ async def start_server(s: SerialManager):
     app.add_routes(routes)
     runner = web.AppRunner(app)
     await runner.setup()
-    site = web.TCPSite(runner, 'localhost', 8080)
+    site = web.TCPSite(runner, 'localhost', 8081)
     await site.start()
 
 
 
-async def send_post(url, url_args=None, params=None, json=None):
+async def send_post(url, url_args=None, params=None, j=None):
+    print(j)
     async with ClientSession() as session:
-        async with session.post(url.format(*url_args), params=params, json=json) as resp:
+        async with session.post(url.format(*url_args), params=params, json=j) as resp:
             return resp
         
 
-async def send_put(url, url_args=None, params=None, json=None):
+async def send_put(url, url_args=None, params=None, j=None):
+    print(j)
     async with ClientSession() as session:
-        async with session.put(url.format(*url_args), params=params, json=json) as resp:
-            return resp
+        if url_args is not None:
+            async with session.put(url.format(*url_args), params=params, json=j) as resp:
+                return resp
+        else:
+            async with session.put(url, params=params, json=j) as resp:
+                return resp
+
 
 
 async def send_sensing(serial, microbit_id, sensor_name, sample_rate=None, min_val=None, max_val=None):

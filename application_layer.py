@@ -3,6 +3,7 @@ from serialprotocol import DATA
 import time
 import network_manager
 import asyncio
+import json
 import socket
 
 COMPONENT_ID = 50
@@ -58,7 +59,7 @@ class ApplicationLayer:
 
 
 
-    def __call__(self, serial: SerialManager):
+    def __call__(self, serial):
         self.__serial = serial
 
         @serial.listen(COMPONENT_ID, NEW_SAMPLE, full_payload=True)
@@ -67,13 +68,13 @@ class ApplicationLayer:
             msg *= 'Isf'
             msg(payload)
             data = msg.get_data()
-            o = {}
+            o = dict()
             o['microbit'] = data[0]
-            o['sensor'] = data[1]
+            o['sensor'] = str(data[1], 'utf-8')
             o['value'] = data[2]
             o['timestamp'] = int(round(time.time() * 1000))
             microbit_id = data[0]
-            asyncio.create_task(network_manager.send_post('#TODO', [microbit_id], json=o))
+            asyncio.create_task(network_manager.send_post('http://localhost:8080/sink/{0}', [microbit_id], j=o))
 
         @serial.listen(COMPONENT_ID, NEW_PLANT, full_payload=True)
         def new_plant(payload):
@@ -81,13 +82,13 @@ class ApplicationLayer:
             msg *= 'Ias'
             msg(payload)
             data = msg.get_data()
-            o = {}
+            o = dict()
             o['microbit'] = data[0]
             o['description'] = 'plant'
             o['connected'] = True
             o['sink'] = False
-            o['sensors'] = data[1]
-            asyncio.create_task(network_manager.send_put('#TODO', json=o))
+            o['sensors'] = [ str(x,'utf-8') for x in data[1]]
+            asyncio.create_task(network_manager.send_put('http://localhost:8080/sink', j=o))
 
         @serial.listen(COMPONENT_ID, DISCONNECTED_PLANT, full_payload=True)
         def disconnected_plant(payload):
