@@ -2,10 +2,13 @@
 
 import signal
 import sys
+import asyncio
 from serial_manager import SerialManager
+from application_layer import ApplicationLayer
 from network_layer_serial_manager import NetworkLayerSerialManager
 from serial.serialutil import SerialException
 from time import sleep
+from network_manager import start_server
 
 
 DEVICE = '/dev/ttyACM0'
@@ -20,10 +23,11 @@ def main(serial: SerialManager):
     if len(sys.argv) > 0:
         DEVICE = sys.argv[0]
 
+    app_layer = ApplicationLayer()
     network_layer = NetworkLayerSerialManager()
 
     @serial.listen(101, 1)
-    def recv(payload: bytes):
+    def recv1(payload: bytes):
         print("NETWORK_LAYER", "DEBUG", payload)
 
     @serial.listen(100, 2)
@@ -31,14 +35,17 @@ def main(serial: SerialManager):
         print("APPLICATION:", payload)
 
     @serial.listen(102, 1)
-    def recv(payload: bytes):
+    def recv2(payload: bytes):
         print("APPLICATION_LAYER", "recv:", payload)
 
     # @serial.listen(120, 1)
     # def recv(payload: bytes):
     #     print("MAC_LAYER", payload)
 
+    app_layer(serial)
     network_layer(serial)
+
+    asyncio.create_task(start_server(app_layer))
 
 
 if __name__ == '__main__':
