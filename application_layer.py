@@ -51,13 +51,11 @@ DISCONNECTED_PLANT = 5
 
 '''
 
+
 class ApplicationLayer:
 
     def __init__(self):
         self.__serial = None
-
-
-
 
     def __call__(self, serial):
         self.__serial = serial
@@ -74,7 +72,7 @@ class ApplicationLayer:
             o['value'] = data[2]
             o['timestamp'] = int(round(time.time() * 1000))
             microbit_id = data[0]
-            asyncio.create_task(network_manager.send_post('http://localhost:8080/sink/{0}', [microbit_id], j=o))
+            asyncio.create_task(network_manager.send_post('http://192.168.1.23:8080/sink/{0}', [microbit_id], j=o))
 
         @serial.listen(COMPONENT_ID, NEW_PLANT, full_payload=True)
         def new_plant(payload):
@@ -88,7 +86,7 @@ class ApplicationLayer:
             o['connected'] = True
             o['sink'] = False
             o['sensors'] = [ str(x,'utf-8') for x in data[1]]
-            asyncio.create_task(network_manager.send_put('http://localhost:8080/sink', j=o))
+            asyncio.create_task(network_manager.send_put('http://192.168.1.23:8080/sink', j=o))
 
         @serial.listen(COMPONENT_ID, DISCONNECTED_PLANT, full_payload=True)
         def disconnected_plant(payload):
