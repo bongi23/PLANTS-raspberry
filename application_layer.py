@@ -70,7 +70,7 @@ routes = web.RouteTableDef()
 async def start_server(app):
     runner = web.AppRunner(app)
     await runner.setup()
-    site = web.TCPSite(runner, 'localhost', 8080)
+    site = web.TCPSite(runner, '10.101.49.39', 8081)
     await site.start()
 
 class EventHandler:
@@ -92,8 +92,9 @@ class ApplicationLayer:
     def __enter__(self):
         self.__loop = asyncio.get_event_loop()
         self.__app = web.Application()
-        self.__app.add_routes(routes)
+        self.__app.router.add_put('/sensing/{microbit_id}/{event_id}', self.put)
         self.__loop.run_until_complete(start_server(self.__app))
+        return self
 
     def __exit__(self, exc_type, exc_value, traceback):
         self.__loop.run_forever()
@@ -150,6 +151,7 @@ class ApplicationLayer:
     def __call__(self, serial: SerialManager, nl: NetworkLayerSerialManager):
         self.__serial = serial
         self.__network_layer = nl
+        print('ciao')
  
 
         @serial.listen(COMPONENT_ID, NEW_SAMPLE, full_payload=True)
