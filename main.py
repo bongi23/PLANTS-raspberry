@@ -6,14 +6,12 @@ from application_layer import ApplicationLayer
 from network_layer_serial_manager import NetworkLayerSerialManager
 from serial.serialutil import SerialException
 from time import sleep
-from network_manager import start_server
-
 
 DEVICE = '/dev/ttyACM4'
 BAUDRATE = 115200
 
 
-async def main(serial):
+async def main(serial, app_layer):
     global DEVICE
 
     args = sys.argv
@@ -21,7 +19,6 @@ async def main(serial):
     if len(sys.argv) > 0:
         DEVICE = sys.argv[0]
 
-    app_layer = ApplicationLayer()
     network_layer = NetworkLayerSerialManager()
 
     @serial.listen(101, 1)
@@ -48,6 +45,7 @@ if __name__ == '__main__':
 
     try:
         with SerialManager(DEVICE, BAUDRATE) as serial:
-            asyncio.run(main(serial))
+            with ApplicationLayer() as ap:
+                asyncio.run(main(None, ap))
     except Exception as exception:
         print(exception)

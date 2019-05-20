@@ -67,9 +67,7 @@ def check_int(t, name):
 
 routes = web.RouteTableDef()
 
-async def start_server():
-    app = web.Application()
-    app.add_routes(routes)
+async def start_server(app):
     runner = web.AppRunner(app)
     await runner.setup()
     site = web.TCPSite(runner, 'localhost', 8080)
@@ -77,22 +75,34 @@ async def start_server():
 
 class EventHandler:
 
-    def __init__(self, microbit_id, min_value=None, max_value=None):
+    def __init__(self, microbit_id, sensor=None, min_value=None, max_value=None):
         self.microbit_id = microbit_id
+        self.sensor = sensor
         self.min_value = min_value
         self.max_value = max_value
 
-@routes.view('/sensing/{microbit_id}/{event_id}')
-class ApplicationLayer(web.View):
+class ApplicationLayer:
 
     def __init__(self):
+        global routes
         self.__serial = None
         self.__events = {}
         self.__network_layer = None
-        super(ApplicationLayer, self).__init__()
 
-    async def put(self):
-        request = self.request
+    def __enter__(self):
+        self.__loop = asyncio.get_event_loop()
+        self.__app = web.Application()
+        self.__app.add_routes(routes)
+        self.__loop.run_until_complete(start_server(self.__app))
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        self.__loop.run_forever()
+        self.__loop.close()
+
+
+    @routes.put('/sensing/{microbit_id}/{event_id}')
+    async def put(self, request):
+        request = request
         microbit_id = request.match_info['microbit_id']
         check_int(microbit_id, 'microbit_id')
         microbit_id = int(microbit_id)
@@ -104,17 +114,19 @@ class ApplicationLayer(web.View):
         if max_value is not None:
             check_int(max_value, 'max_value')
         max_value = int(max_value)
+        sensor = request.query.get('sensor', None)
 
         event_id = request.match_info['event_id']
         if len(self.__network_layer.routing_table[microbit_id]) == 0:
             return web.Response(status=404)
 
-        self.__events[event_id] =  EventHandler(microbit_id, min_value, max_value)
+        self.__events[event_id] =  EventHandler(microbit_id, sensor, min_value, max_value)
 
         return web.Response()
 
-    async def delete(self):
-        request = self.request
+    @routes.delete('/sensing/{microbit_id}/{event_id}')
+    async def delete(self, request):
+        request = request
         microbit_id = request.match_info['microbit_id']
         check_int(microbit_id, 'microbit_id')
         microbit_id = int(microbit_id)
@@ -138,8 +150,6 @@ class ApplicationLayer(web.View):
     def __call__(self, serial: SerialManager, nl: NetworkLayerSerialManager):
         self.__serial = serial
         self.__network_layer = nl
-
-        asyncio.create_task(start_server())
  
 
         @serial.listen(COMPONENT_ID, NEW_SAMPLE, full_payload=True)
