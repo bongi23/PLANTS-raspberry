@@ -4,6 +4,7 @@ import time
 from network_layer_serial_manager import NetworkLayerSerialManager
 import network_manager
 import asyncio
+import json
 import socket
 from aiohttp import web, http_exceptions
 
@@ -65,6 +66,14 @@ def check_int(t, name):
         raise http_exceptions.HttpBadRequest("{0} can't be more than 32 bit long".format(name))
 
 routes = web.RouteTableDef()
+
+async def start_server():
+    app = web.Application()
+    app.add_routes(routes)
+    runner = web.AppRunner(app)
+    await runner.setup()
+    site = web.TCPSite(runner, 'localhost', 8080)
+    await site.start()
 
 class EventHandler:
 
@@ -130,12 +139,8 @@ class ApplicationLayer(web.View):
         self.__serial = serial
         self.__network_layer = nl
 
-        app = web.Application()
-        app.add_routes(routes)
-        runner = web.AppRunner(app)
-        await runner.setup()
-        site = web.TCPSite(runner, 'localhost', 8080)
-        await site.start()
+        asyncio.create_task(start_server())
+ 
 
         @serial.listen(COMPONENT_ID, NEW_SAMPLE, full_payload=True)
         def new_sample(payload):
@@ -143,13 +148,13 @@ class ApplicationLayer(web.View):
             msg *= 'Isf'
             msg(payload)
             data = msg.get_data()
-            o = {}
+            o = dict()
             o['microbit'] = data[0]
-            o['sensor'] = data[1]
+            o['sensor'] = str(data[1], 'utf-8')
             o['value'] = data[2]
             o['timestamp'] = int(round(time.time() * 1000))
             microbit_id = data[0]
-            asyncio.create_task(network_manager.send_post('#TODO', [microbit_id], json=o))
+            asyncio.create_task(network_manager.send_post('http://192.168.1.23:8080/sink/{0}', [microbit_id], j=o))
 
         @serial.listen(COMPONENT_ID, NEW_PLANT, full_payload=True)
         def new_plant(payload):
@@ -157,13 +162,13 @@ class ApplicationLayer(web.View):
             msg *= 'Ias'
             msg(payload)
             data = msg.get_data()
-            o = {}
+            o = dict()
             o['microbit'] = data[0]
             o['description'] = 'plant'
             o['connected'] = True
             o['sink'] = False
-            o['sensors'] = data[1]
-            asyncio.create_task(network_manager.send_put('#TODO', json=o))
+            o['sensors'] = [ str(x,'utf-8') for x in data[1]]
+            asyncio.create_task(network_manager.send_put('http://192.168.1.23:8080/sink', j=o))
 
         @serial.listen(COMPONENT_ID, DISCONNECTED_PLANT, full_payload=True)
         def disconnected_plant(payload):

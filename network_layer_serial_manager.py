@@ -26,7 +26,7 @@ class NetworkLayerSerialManager:
         self.routing_table = RoutingTable()
         self.serial_initiated = False
 
-    def _send(self, serial: SerialManager, payload: bytes):
+    def _send(self, serial, payload):
         serial.send(self.COMPONENT_ID, self.EVENT_ID, payload)
 
     def _process_message(self, payload: bytes) -> bytes:
@@ -92,7 +92,7 @@ class NetworkLayerSerialManager:
         else:
             return self.FALSE
 
-    def __call__(self, serial: SerialManager):
+    def __call__(self, serial):
         if(not serial.is_init):
             return
 

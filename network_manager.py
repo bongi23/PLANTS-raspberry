@@ -14,16 +14,23 @@ REMOVE_SENSING_RESP = 2
 
 
 
-async def send_post(url, url_args=None, params=None, json=None):
+async def send_post(url, url_args=None, params=None, j=None):
+    print(j)
     async with ClientSession() as session:
-        async with session.post(url.format(*url_args), params=params, json=json) as resp:
+        async with session.post(url.format(*url_args), params=params, json=j) as resp:
             return resp
         
 
-async def send_put(url, url_args=None, params=None, json=None):
+async def send_put(url, url_args=None, params=None, j=None):
+    print(j)
     async with ClientSession() as session:
-        async with session.put(url.format(*url_args), params=params, json=json) as resp:
-            return resp
+        if url_args is not None:
+            async with session.put(url.format(*url_args), params=params, json=j) as resp:
+                return resp
+        else:
+            async with session.put(url, params=params, json=j) as resp:
+                return resp
+
 
 
 async def send_sensing(serial, microbit_id, sensor_name, min_val=None, max_val=None):
