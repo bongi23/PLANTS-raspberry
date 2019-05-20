@@ -40,11 +40,8 @@ async def main(serial):
     # def recv(payload: bytes):
     #     print("MAC_LAYER", payload)
 
-    app_layer(serial)
     network_layer(serial)
-
-    asyncio.create_task(start_server(serial))
-
+    app_layer(serial, network_layer)
 
 if __name__ == '__main__':
     signal.signal(signal.SIGINT, lambda x, y: sys.exit(0))
