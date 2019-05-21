@@ -102,5 +102,5 @@ class RoutingTable:
         return str(self.__routing_tree)
 
     def reset(self):
+        self.__routing_tree = Node(None)
         self.__routes = {}
-        self.__routing_tree = None
