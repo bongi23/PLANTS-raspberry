@@ -86,6 +86,7 @@ class SerialManager:
 
     async def recv(self, component_id: int, event_id: int, full_payload=False):
         queue = asyncio.Queue()
+        
         def f(payload):
             queue.put_nowait(payload)
         self.listen(component_id, event_id, f, full_payload)
@@ -94,8 +95,10 @@ class SerialManager:
         return payload
 
     async def recv_send(self, component_id: int, event_id: int,
-                        to_send_c_id=None, to_send_e_id=None, payload=None, full_payload=False):
+                        full_payload=False, to_send_c_id=None,
+                        to_send_e_id=None, payload=None):
         queue = asyncio.Queue()
+
         def f(p):
             queue.put_nowait(p)
         self.listen(component_id, event_id, f, full_payload)
