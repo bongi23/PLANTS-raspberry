@@ -41,13 +41,13 @@ class NetworkLayerSerialManager:
             return
 
         if(message_type == self.DD_SERIAL_GET):
-            print('try get')
+            # print('RASPBERRY:', 'get', end=' ')
             if(len(buffer_data) != 4):
                 return self.FALSE
 
             destination = microbit_uint_from_bytes(buffer_data)
 
-            print('searching for', destination)
+            # print(destination, end=' = ')
 
             node_route = self.routing_table[destination]
 
@@ -58,26 +58,26 @@ class NetworkLayerSerialManager:
             for node in node_route:
                 result += microbit_uint_to_bytes(node, 4)
 
-            print('get route:', node_route)
+            # print(node_route)
 
             return self.TRUE + result
 
         elif(message_type == self.DD_SERIAL_PUT):
-            print('try put')
+            # print('RASPBERRY:', 'put', end=' ')
             if(len(buffer_data) % 4):
                 return self.FALSE
 
             node_route = []
             for i in range(0, int(len(buffer_data)), 4):
-                node_route.insert(
-                    0, microbit_uint_from_bytes(buffer_data[i:i + 4]))
+                node_route.append(
+                    microbit_uint_from_bytes(buffer_data[i:i + 4]))
 
             try:
                 self.routing_table[node_route[-1]] = node_route
             except Exception:
                 return self.FALSE
 
-            print('put route:', node_route)
+            # print('route:', node_route)
 
             return self.TRUE
 
