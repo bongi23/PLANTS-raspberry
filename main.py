@@ -28,6 +28,10 @@ def main(serial: SerialManager):
     def _(payload: bytes):
         print("MAC_LAYER:", payload)
 
+    @serial.listen(120, 2)
+    def _(payload: bytes):
+        print("MAC_LAYER", "DEBUG:", payload)
+
     network_layer(serial)
 
     print('boh')

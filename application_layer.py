@@ -92,7 +92,7 @@ routes = web.RouteTableDef()
 async def start_server(app: web.Application):
     runner = web.AppRunner(app)
     await runner.setup()
-    site = web.TCPSite(runner, '10.101.49.39', 8081)
+    site = web.TCPSite(runner, 'localhost', 8081)
     await site.start()
 
 
