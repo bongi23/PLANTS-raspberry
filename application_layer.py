@@ -11,6 +11,7 @@ from typing import Union
 import math
 
 SERVER_URL = 'localhost:8080'
+RASPY_URL = 'localhost'
 
 COMPONENT_ID = 50
 SENSING_RESP = 1
@@ -22,8 +23,12 @@ DISCONNECTED_PLANT = 5
 '''
     sensing message id 2
 
+    byte resp_id
     uint32 microbit_id
     string sensor_name
+    byte start_sampling
+        0 -> stop
+        1 -> start
     next three are control bytes:
         0 -> the information is not present
         1 -> update the information
@@ -92,7 +97,7 @@ routes = web.RouteTableDef()
 async def start_server(app: web.Application):
     runner = web.AppRunner(app)
     await runner.setup()
-    site = web.TCPSite(runner, '10.101.49.39', 8081)
+    site = web.TCPSite(runner, RASPY_URL, 8081)
     await site.start()
 
 
@@ -163,8 +168,14 @@ class SensorHandle:
                        if rate is not None else val['sample_rate']
 
     def __call__(self)-> dict:
+        start_sampling = 1
+        if len(self.__events) == 0:
+            start_sampling = 0
+        elif len(self.__events) == 1 and -1 in self.__events:
+            start_sampling = 0
         return {
                     'sensor': self.__sensor,
+                    'start_sampling': start_sampling,
                     'min_value': self.__min_val,
                     'max_value': self.__max_val,
                     'sample_rate': self.__sample_time
@@ -228,11 +239,18 @@ class ApplicationLayer:
         self.__serial = None
         self.__microbits = {}
         self.__network_layer = None
+        self.__value_lock = asyncio.Lock()
+        self.__value = 6
 
     def __enter__(self):
         self.__loop = asyncio.get_event_loop()
         self.__app = web.Application()
-        self.__app.router.add_put('/sensing/{microbit_id}/{event_id}', self.put)
+        self.__app.router.add_put('/sensing/{microbit_id}/{event_id}',
+                                  self.put)
+        self.__app.router.add_delete('/sensing/{microbit_id}/{event_id}',
+                                     self.delete)
+        self.__app.router.add_put('/sensing/{microbit_id}/{sensor_name}/time',
+                                  self.update_sample_rate)
         self.__loop.run_until_complete(start_server(self.__app))
         return self
 
@@ -243,7 +261,18 @@ class ApplicationLayer:
     async def __handle_sensing_req(self, gradient: dict,
                                    microbit_id: int) -> DATA:
         msg = DATA(COMPONENT_ID, SENSING_REQ)
+        async with self.__value_lock:
+            val = self.__value
+            self.__value += 1
+            if self.__value == 256:
+                self.__value = 6
+        msg += ('B', val)
         msg += [microbit_id, gradient['sensor']]
+        if gradient['start_sampling']:
+            msg += ('B', 1)
+        else:
+            msg += ('B', 0)
+
         if is_consistent(gradient):
             for attr in ['sample_rate', 'min_value', 'max_value']:
                 msg += ('B', 0 if gradient[attr] is None else 1)
@@ -255,11 +284,14 @@ class ApplicationLayer:
             msg += [('B', 2), ('B', 2)]
             if gradient['sample_rate'] is not None:
                 msg += gradient['sample_rate']
-        resp = DATA(COMPONENT_ID, SENSING_RESP)
+        resp = DATA(COMPONENT_ID, val)
         resp *= 'I'
-        resp(await self.__serial.recv_send(COMPONENT_ID, SENSING_RESP,
-                                           payload=bytes(msg),
-                                           full_payload=True))
+        r = 3
+        while r == 3:
+            resp(await self.__serial.recv_send(COMPONENT_ID, SENSING_RESP,
+                                               payload=bytes(msg),
+                                               full_payload=True))
+            r = resp.get_data()[0]
         return resp
 
     @routes.put('/sensing/{microbit_id}/{event_id}')
@@ -355,7 +387,7 @@ class ApplicationLayer:
         self.__network_layer = nl
 
         @serial.listen(COMPONENT_ID, NEW_SAMPLE, full_payload=True)
-        def new_sample(payload):
+        def _(payload):
             msg = DATA(COMPONENT_ID, NEW_SAMPLE)
             msg *= 'Isf'
             msg(payload)
@@ -372,7 +404,7 @@ class ApplicationLayer:
                                                           [microbit_id], j=o))
 
         @serial.listen(COMPONENT_ID, NEW_PLANT, full_payload=True)
-        def new_plant(payload):
+        def _(payload):
             msg = DATA(COMPONENT_ID, NEW_PLANT)
             msg *= 'Ias'
             msg(payload)
@@ -388,7 +420,7 @@ class ApplicationLayer:
                                                          j=o))
 
         @serial.listen(COMPONENT_ID, DISCONNECTED_PLANT, full_payload=True)
-        def disconnected_plant(payload):
+        def _(payload):
             msg = DATA(COMPONENT_ID, DISCONNECTED_PLANT)
             msg *= 'I'
             msg(payload)

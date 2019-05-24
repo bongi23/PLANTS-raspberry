@@ -23,11 +23,13 @@ class SerialManager:
     def is_init(self):
         return self._is_init
 
-    def listen(self, component_id: int, event_id: int, listener=None, full_payload=False):
+    def listen(self, component_id: int, event_id: int, listener=None,
+               full_payload=False):
         if listener:
             self._listeners.setdefault(component_id, {})
             self._listeners[component_id].setdefault(event_id, [])
-            self._listeners[component_id][event_id].append((listener, full_payload))
+            self._listeners[component_id][event_id].append((listener,
+                                                            full_payload))
         else:
             def decorator(listener):
                 self.listen(component_id, event_id, listener, full_payload)
@@ -48,9 +50,9 @@ class SerialManager:
                     components.pop(event_id)
                     if len(components) == 0:
                         self._listeners.pop(component_id)
-    
 
-    def send(self, component_id: int = None, event_id: int = None, payload: bytes = None):
+    def send(self, component_id: int = None, event_id: int = None,
+             payload: bytes = None):
         if component_id is not None:
             payload = (microbit_uint_to_bytes(component_id, 1) +
                        microbit_uint_to_bytes(event_id, 1) +
@@ -86,7 +88,7 @@ class SerialManager:
 
     async def recv(self, component_id: int, event_id: int, full_payload=False):
         queue = asyncio.Queue()
-        
+
         def f(payload):
             queue.put_nowait(payload)
         self.listen(component_id, event_id, f, full_payload)
@@ -129,7 +131,8 @@ class SerialManager:
 
             payload = await self._reader.readexactly(length)
 
-            for listener, full_payload in (self._listeners.get(component_id, {})
+            for listener, full_payload in (self._listeners.get(component_id,
+                                                               {})
                                            .get(event_id, [])):
                 if full_payload:
                     listener(_component_id + _event_id + _length + payload)
