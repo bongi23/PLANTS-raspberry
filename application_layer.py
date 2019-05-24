@@ -75,9 +75,6 @@ def check_int(t, name: str):
     except Exception:
         raise http_exceptions.HttpBadRequest('{0} must be an integer'
                                              .format(name))
-    if t < 0:
-        raise http_exceptions.HttpBadRequest('{0} must be unsigned'
-                                             .format(name))
     if t.bit_length() > 32:
         raise http_exceptions.HttpBadRequest("{0} can't be more than 32 bit"
                                              .format(name) + "long")
@@ -86,13 +83,13 @@ def check_int(t, name: str):
 def is_consistent(gradient: dict) -> bool:
     min_val = gradient['min_value']
     max_val = gradient['max_value']
+    if min_val is None and max_val is None:
+        return False
     if min_val is None:
         return True
     if max_val is None:
         return True
     return min_val < max_val
-
-routes = web.RouteTableDef()
 
 async def start_server(app: web.Application):
     runner = web.AppRunner(app)
@@ -146,8 +143,8 @@ class SensorHandle:
         for k in self.__events:
             val = self.__events[k]
             if 'min_value' in val:
-                mins = min(mins, val['min_value']) \
-                       if mins is not None else val['min_value']
+                mins = (min(mins, val['min_value'])
+                        if mins is not None else val['min_value'])
         self.__min_val = mins
 
     def __update_max(self):
@@ -155,8 +152,8 @@ class SensorHandle:
         for k in self.__events:
             val = self.__events[k]
             if 'max_value' in val:
-                maxs = max(maxs, val['max_value']) \
-                       if maxs is not None else val['max_value']
+                maxs = (max(maxs, val['max_value'])
+                        if maxs is not None else val['max_value'])
         self.__max_val = maxs
 
     def __update_rate(self):
@@ -164,8 +161,8 @@ class SensorHandle:
         for k in self.__events:
             val = self.__events[k]
             if 'sample_rate' in val:
-                rate = min(rate, val['sample_rate']) \
-                       if rate is not None else val['sample_rate']
+                rate = (min(rate, val['sample_rate'])
+                        if rate is not None else val['sample_rate'])
 
     def __call__(self)-> dict:
         start_sampling = 1
@@ -174,12 +171,12 @@ class SensorHandle:
         elif len(self.__events) == 1 and -1 in self.__events:
             start_sampling = 0
         return {
-                    'sensor': self.__sensor,
-                    'start_sampling': start_sampling,
-                    'min_value': self.__min_val,
-                    'max_value': self.__max_val,
-                    'sample_rate': self.__sample_time
-               }
+            'sensor': self.__sensor,
+            'start_sampling': start_sampling,
+            'min_value': self.__min_val,
+            'max_value': self.__max_val,
+            'sample_rate': self.__sample_time
+        }
 
 
 class EventHandlers:
@@ -235,7 +232,6 @@ class EventHandlers:
 class ApplicationLayer:
 
     def __init__(self):
-        global routes
         self.__serial = None
         self.__microbits = {}
         self.__network_layer = None
@@ -285,16 +281,17 @@ class ApplicationLayer:
             if gradient['sample_rate'] is not None:
                 msg += gradient['sample_rate']
         resp = DATA(COMPONENT_ID, val)
-        resp *= 'I'
+        resp *= 'B'
         r = 3
+        print(msg.get_data())
         while r == 3:
-            resp(await self.__serial.recv_send(COMPONENT_ID, SENSING_RESP,
+            resp(await self.__serial.recv_send(COMPONENT_ID, val,
                                                payload=bytes(msg),
                                                full_payload=True))
+            print(resp.get_data())
             r = resp.get_data()[0]
         return resp
 
-    @routes.put('/sensing/{microbit_id}/{event_id}')
     async def put(self, request: web.Request) -> web.Response:
         microbit_id = request.match_info['microbit_id']
         check_int(microbit_id, 'microbit_id')
@@ -309,7 +306,7 @@ class ApplicationLayer:
             max_value = int(max_value)
         sensor = request.query.get('sensor', None)
         event_id = request.match_info['event_id']
-
+        event_id = int(event_id)
         microbit = self.__microbits.get(microbit_id, None)
         if microbit is None:
             microbit = EventHandlers(microbit_id)
@@ -319,6 +316,7 @@ class ApplicationLayer:
             o['min_value'] = min_value
         if max_value is not None:
             o['max_value'] = max_value
+        print(o)
         microbit[event_id] = o
 
         gradient = microbit[sensor]()
@@ -331,7 +329,6 @@ class ApplicationLayer:
         elif resp == 2:
             return web.Response(status=410)
 
-    @routes.delete('/sensing/{microbit_id}/{event_id}')
     async def delete(self, request: web.Request) -> web.Response:
         request = request
         microbit_id = request.match_info['microbit_id']
@@ -356,14 +353,14 @@ class ApplicationLayer:
         elif resp == 2:
             return web.Response(status=410)
 
-    @routes.put('/sensing/{microbit_id}/{sensor_name}/time')
     async def update_sample_rate(self, request: web.Request) -> web.Response:
         microbit_id = request.match_info['microbit_id']
         check_int(microbit_id, 'microbit_id')
         microbit_id = int(microbit_id)
         sensor_name = request.match_info['sensor_name']
-        sample_rate = request.query.get('sample_rate')
+        sample_rate = request.query.get('sampling_rate')
         check_int(sample_rate, 'sample_rate')
+        sample_rate = int(sample_rate)
         microbit = self.__microbits.get(microbit_id, None)
         if microbit is None:
             microbit = EventHandlers(microbit_id)

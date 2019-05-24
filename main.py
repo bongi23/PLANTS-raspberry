@@ -11,45 +11,43 @@ DEVICE = '/dev/ttyACM0'
 BAUDRATE = 115200
 
 
-async def main(serial, app_layer):
-    global DEVICE
-
-    args = sys.argv
-
-    if len(sys.argv) > 0:
-        DEVICE = sys.argv[0]
-
+# def main(serial: SerialManager):
+def main(serial: SerialManager):
     print('ciao')
     network_layer = NetworkLayerSerialManager()
 
-    @serial.listen(101, 1)
-    def recv1(payload):
-        print("NETWORK_LAYER", "DEBUG", payload)
-
     @serial.listen(100, 2)
-    def recv(payload):
+    def _(payload):
         print("APPLICATION:", payload)
 
-    @serial.listen(102, 1)
-    def recv2(payload):
-        print("APPLICATION_LAYER", "recv:", payload)
+    @serial.listen(131, 3)
+    def _(payload):
+        print("NETWORK_LAYER", "DEBUG:", payload)
 
-    # @serial.listen(120, 1)
-    # def recv(payload: bytes):
-    #     print("MAC_LAYER", payload)
+    @serial.listen(120, 1)
+    def _(payload: bytes):
+        print("MAC_LAYER:", payload)
 
-    # network_layer(serial)
+    @serial.listen(120, 2)
+    def _(payload: bytes):
+        print("MAC_LAYER", "DEBUG:", payload)
+
+    network_layer(serial)
+
     print('boh')
-    print(app_layer)
-    app_layer(serial, network_layer)
+    with ApplicationLayer() as app_layer:
+        print(app_layer)
+        app_layer(serial, network_layer)
     print('bah')
+
 
 if __name__ == '__main__':
     signal.signal(signal.SIGINT, lambda x, y: sys.exit(0))
 
+    DEVICE = sys.argv[1] if len(sys.argv) > 1 else DEVICE
+
     try:
         with SerialManager(DEVICE, BAUDRATE) as serial:
-            with ApplicationLayer() as ap:
-                asyncio.run(main(serial, ap))
+            main(serial)
     except Exception as exception:
         print(exception)
