@@ -18,7 +18,7 @@ def main(serial: SerialManager):
     async def print_routes():
         nonlocal network_layer
         s = await network_layer.print_routes()
-        with open('routes', 'w') as route:
+        with open('/home/PLANTS/routes', 'w') as route:
             route.write(s)
 
     signal.signal(signal.SIGUSR1, print_routes)
