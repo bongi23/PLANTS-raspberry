@@ -89,6 +89,8 @@ class RoutingTable:
         if tmp.val not in current.sons:
             current.sons[tmp.val] = tmp
             tmp.parent = current
+        else:
+            tmp = current.sons[tmp.val]
         self.__routes[key] = tmp
 
     def __get_list(self, key):
