@@ -15,12 +15,15 @@ BAUDRATE = 115200
 def main(serial: SerialManager):
     network_layer = NetworkLayerSerialManager()
 
-    async def print_routes(x, y):
+    async def f():
         nonlocal network_layer
         s = await network_layer.print_routes()
         print(s)
         with open('/home/plants/routes', 'w') as route:
             route.write(s)
+
+    def print_routes(x, y):
+        asyncio.create_task(f)
 
     signal.signal(signal.SIGUSR1, print_routes)
 
