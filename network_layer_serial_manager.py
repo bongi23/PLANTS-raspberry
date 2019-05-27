@@ -29,7 +29,7 @@ class NetworkLayerSerialManager:
     def _send(self, serial, payload):
         serial.send(self.COMPONENT_ID, self.EVENT_ID, payload)
 
-    async def print_routes(self):
+    def print_routes(self):
         with open('/home/plants/routes', 'w') as routes:
             routes.write(str(self.routing_table))
 
