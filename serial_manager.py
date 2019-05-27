@@ -134,5 +134,5 @@ class SerialManager:
                                                                {})
                                            .get(event_id, [])):
                 if full_payload:
-                    payload = _component_id + _event_id + payload
+                    payload = _component_id + _event_id + _length + payload
                 listener(payload)

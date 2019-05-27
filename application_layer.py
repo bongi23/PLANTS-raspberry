@@ -403,7 +403,6 @@ class ApplicationLayer:
         @serial.listen(COMPONENT_ID, NEW_PLANT, full_payload=True)
         def _(payload):
             msg = DATA(COMPONENT_ID, NEW_PLANT)
-            print(payload)
             msg *= 'Ias'
             msg(payload)
             data = msg.get_data()
