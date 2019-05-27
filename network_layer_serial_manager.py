@@ -33,7 +33,7 @@ class NetworkLayerSerialManager:
         with open('/home/plants/routes', 'w') as routes:
             routes.write(str(self.routing_table))
 
-    async def _process_message(self, payload: bytes) -> bytes:
+    def _process_message(self, payload: bytes) -> bytes:
         message_type = microbit_uint_from_bytes(payload[0:1])
         buffer_data = payload[1:]
 
