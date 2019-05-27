@@ -66,7 +66,7 @@ class NetworkLayerSerialManager:
             return self.TRUE + result
 
         elif(message_type == self.DD_SERIAL_PUT):
-            # print('RASPBERRY:', 'put', end=' ')
+            print('RASPBERRY:', 'put', end=' ')
             if(len(buffer_data) % 4):
                 return self.FALSE
 
@@ -80,7 +80,7 @@ class NetworkLayerSerialManager:
             except Exception:
                 return self.FALSE
 
-            # print('route:', node_route)
+            print('route:', node_route)
 
             return self.TRUE
 
