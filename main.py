@@ -13,8 +13,15 @@ BAUDRATE = 115200
 
 # def main(serial: SerialManager):
 def main(serial: SerialManager):
-    print('ciao')
     network_layer = NetworkLayerSerialManager()
+
+    async def print_routes():
+        nonlocal network_layer
+        s = await network_layer.print_routes()
+        with open('routes', 'w') as route:
+            route.write(s)
+
+    signal.signal(signal.SIGUSR1, print_routes)
 
     @serial.listen(100, 2)
     def _(payload):
@@ -34,11 +41,8 @@ def main(serial: SerialManager):
 
     network_layer(serial)
 
-    print('boh')
     with ApplicationLayer() as app_layer:
-        print(app_layer)
         app_layer(serial, network_layer)
-    print('bah')
 
 
 if __name__ == '__main__':

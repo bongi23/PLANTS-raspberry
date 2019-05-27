@@ -1,6 +1,7 @@
 import asyncio
 import serial_asyncio
 import struct
+import inspect
 
 
 def microbit_uint_from_bytes(bytes_: bytes):
@@ -135,6 +136,9 @@ class SerialManager:
                                                                {})
                                            .get(event_id, [])):
                 if full_payload:
-                    listener(_component_id + _event_id + _length + payload)
+                    payload = _component_id + _event_id + payload
+
+                if inspect.iscoroutinefunction(listener):
+                    await listener(payload)
                 else:
                     listener(payload)

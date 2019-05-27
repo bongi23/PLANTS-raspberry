@@ -18,6 +18,13 @@ class Node:
 
 
 class RoutingTable:
+
+    __ids = {
+        2796262830: 'W',
+        2426823503: 'A',
+        2764293628: 'M'
+    }
+
     def __init__(self):
         self.__routing_tree = Node(None)
         self.__routes = {}
@@ -36,7 +43,7 @@ class RoutingTable:
 
         # if key in self.__routes:
         #     val = self.__routes[key]
-        #     self.__remove_sons(val)    
+        #     self.__remove_sons(val)
 
         i = len(value) - 1
         node = None
@@ -44,7 +51,7 @@ class RoutingTable:
             val = value[i]
             i -= 1
             if val in self.__routes and node is None:
-               node = self.__routes[val]
+                node = self.__routes[val]
             elif node is not None:
                 if node.parent is not None and node.parent.val != val:
                     if node.parent.parent is not None:
@@ -60,11 +67,6 @@ class RoutingTable:
                 node.parent = None
                 self.__remove_sons(node)
 
-                
-
-                        
-                
-
     def __remove_sons(self, node):
         for son in node.sons.values():
             son.parent = None
@@ -73,7 +75,6 @@ class RoutingTable:
         node.sons = {}
 
     def __add_item(self, key, value):
-
         current = self.__routing_tree
         for node in value[:-1]:
             tmp = Node(node)
@@ -99,7 +100,18 @@ class RoutingTable:
         return ret
 
     def __str__(self):
-        return str(self.__routing_tree)
+        s = ''
+        for route in self.__routes:
+            s += '{0}: ['.format(RoutingTable.__id_to_str(route))
+            l = self.__get_list(route)
+            for e in l[:-1]:
+                s += '{0} -> '.format(RoutingTable.__id_to_str(e))
+            s += '{0}]\n'.format(RoutingTable.__id_to_str(l[-1]))
+        return s
+
+    @staticmethod
+    def __id_to_str(i: int) -> str:
+        return RoutingTable.__ids[i]
 
     def reset(self):
         self.__routing_tree = Node(None)
