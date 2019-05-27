@@ -10,8 +10,8 @@ from aiohttp import web, http_exceptions
 from typing import Union
 import math
 
-SERVER_URL = 'localhost:8080'
-RASPY_URL = 'localhost'
+SERVER_URL = '192.168.50.23:8080'
+RASPY_URL = '192.168.50.2'
 
 COMPONENT_ID = 50
 SENSING_RESP = 1
