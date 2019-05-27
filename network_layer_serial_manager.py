@@ -24,15 +24,14 @@ class NetworkLayerSerialManager:
 
     def __init__(self):
         self.routing_table = RoutingTable()
-        self.__lock = asyncio.Lock()
         self.serial_initiated = False
 
     def _send(self, serial, payload):
         serial.send(self.COMPONENT_ID, self.EVENT_ID, payload)
 
     async def print_routes(self):
-        async with self.__lock:
-            return str(self.routing_table)
+        with open('/home/plants/routes', 'w') as routes:
+            routes.write(str(self.routing_table))
 
     async def _process_message(self, payload: bytes) -> bytes:
         message_type = microbit_uint_from_bytes(payload[0:1])
@@ -53,8 +52,7 @@ class NetworkLayerSerialManager:
             destination = microbit_uint_from_bytes(buffer_data)
 
             # print(destination, end=' = ')
-            async with self.__lock:
-                node_route = self.routing_table[destination]
+            node_route = self.routing_table[destination]
 
             if(not node_route):
                 return self.FALSE
@@ -78,8 +76,7 @@ class NetworkLayerSerialManager:
                     microbit_uint_from_bytes(buffer_data[i:i + 4]))
 
             try:
-                async with self.__lock:
-                    self.routing_table[node_route[-1]] = node_route
+                self.routing_table[node_route[-1]] = node_route
             except Exception:
                 return self.FALSE
 
@@ -91,8 +88,7 @@ class NetworkLayerSerialManager:
             global counter
             counter += 1
             print('clear counter', counter)
-            async with self.__lock:
-                self.routing_table.reset()
+            self.routing_table.reset()
 
             return self.TRUE
 
@@ -104,8 +100,9 @@ class NetworkLayerSerialManager:
             return
 
         @serial.listen(self.COMPONENT_ID, self.EVENT_ID)
-        async def _(payload: bytes):
-            result = await self._process_message(payload)
+        def _(payload: bytes):
+            result = self._process_message(payload)
+            self.print_routes()
             if(result):
                 self._send(serial, result)
 
