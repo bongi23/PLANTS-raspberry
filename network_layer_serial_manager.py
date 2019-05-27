@@ -30,7 +30,7 @@ class NetworkLayerSerialManager:
     def _send(self, serial, payload):
         serial.send(self.COMPONENT_ID, self.EVENT_ID, payload)
 
-    def print_routes(self):
+    async def print_routes(self):
         async with self.__lock:
             return str(self.routing_table)
 
