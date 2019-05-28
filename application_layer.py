@@ -408,6 +408,7 @@ class ApplicationLayer:
             msg(payload)
             data = msg.get_data()
             o = dict()
+            o['network'] = '192.168.50.2'
             o['microbit'] = data[0]
             o['description'] = data[1]
             o['connected'] = True
