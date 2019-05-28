@@ -411,7 +411,7 @@ class ApplicationLayer:
             o = dict()
             o['network'] = 'http://192.168.50.2:8081'
             o['microbit'] = data[0]
-            o['description'] = data[1]
+            o['description'] = str(data[1])
             o['connected'] = True
             o['sink'] = False
             o['sensors'] = [str(x, 'utf-8') for x in data[2]]
