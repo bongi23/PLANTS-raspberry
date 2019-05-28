@@ -295,6 +295,7 @@ class ApplicationLayer:
         return resp
 
     async def put(self, request: web.Request) -> web.Response:
+        print('putting')
         microbit_id = request.match_info['microbit_id']
         check_int(microbit_id, 'microbit_id')
         microbit_id = int(microbit_id)
@@ -319,7 +320,8 @@ class ApplicationLayer:
             o['min_value'] = min_value
         if max_value is not None:
             o['max_value'] = max_value
-        print(o)
+        print('event', o)
+        print('event_id', event_id)
         microbit[event_id] = o
 
         gradient = microbit[sensor]()
@@ -333,6 +335,7 @@ class ApplicationLayer:
             return web.Response(status=410)
 
     async def delete(self, request: web.Request) -> web.Response:
+        print('deleting')
         request = request
         microbit_id = request.match_info['microbit_id']
         check_int(microbit_id, 'microbit_id')
@@ -340,6 +343,7 @@ class ApplicationLayer:
         event_id = request.match_info['event_id']
         event_id = int(event_id)
 
+        print('event_id', event_id)
         microbit = self.__microbits.get(microbit_id, None)
         if microbit is None:
             return web.Response()
