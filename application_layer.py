@@ -79,7 +79,7 @@ def check_int(t, name: str) -> bool:
 
     if t.bit_length() > 32:
         return False
-    return True 
+    return True
 
 
 def is_consistent(gradient: dict) -> bool:
@@ -104,24 +104,41 @@ class SensorHandle:
 
     def __init__(self, sensor: str):
         self.__sensor = sensor
+        self.__min_val_none = False
         self.__min_val = None
+        self.__max_val_none = False
         self.__max_val = None
         self.__sample_time = None
         self.__events = {}
 
     def __setitem__(self, key: int, value: dict):
-        self.__events[key] = value
         if 'min_value' in value:
             new_min = value['min_value']
-            self.__min_val = (min(self.__min_val, new_min)
-                              if self.__min_val is not None else new_min)
+            if self.__min_val is None and not self.__min_val_none:
+                self.__min_val = new_min
+            elif self.__min_val_none:
+                self.__min_val = None
+            else:
+                self.__min_val = min(self.__min_val, new_min)
+        else:
+            self.__min_val_none = True
+            self.__min_val = None
         if 'max_value' in value:
             new_max = value['max_value']
-            self.__max_val = (max(self.__max_val, new_max)
-                              if self.__max_val is not None else new_max)
+            if self.__max_val is None and not self.__max_val_none:
+                self.__max_val = new_max
+            elif self.__max_val_none:
+                self.__max_val = None
+            else:
+                self.__max_val = max(self.__max_val, new_max)
+            self.__max_val_set = True
+        else:
+            self.__max_val_none = True
+            self.__max_val = None
 
         if 'sample_rate' in value:
             self.__sample_time = value['sample_rate']
+        self.__events[key] = value
 
     def __delitem__(self, key: int):
         event = self.__events.pop(key)
@@ -129,11 +146,15 @@ class SensorHandle:
             min_val = event['min_value']
             if self.__min_val == min_val:
                 self.__update_min()
+        elif self.__min_val is None and self.__min_val_none:
+            self.__update_min()
 
         if 'max_value' in event:
             max_val = event['max_value']
             if self.__max_val == max_val:
                 self.__update_max()
+        elif self.__max_val is None and self.__max_val_none:
+            self.__update_max()
 
         if 'sample_rate' in event:
             sample_rate = event['sample_rate']
@@ -142,20 +163,32 @@ class SensorHandle:
 
     def __update_min(self):
         mins = None
+        self.__min_val_none = False
         for k in self.__events:
             val = self.__events[k]
             if 'min_value' in val:
-                mins = (min(mins, val['min_value'])
-                        if mins is not None else val['min_value'])
+                if not self.__min_val_none:
+                    mins = (min(mins, val['min_value'])
+                            if mins is not None else val['min_value'])
+            else:
+                mins = None
+                self.__min_val_none = True
         self.__min_val = mins
 
     def __update_max(self):
         maxs = None
+        self.__max_val_none = False
+        one_is_none = False
         for k in self.__events:
             val = self.__events[k]
             if 'max_value' in val:
-                maxs = (max(maxs, val['max_value'])
-                        if maxs is not None else val['max_value'])
+                self.__max_val_set = True
+                if not self.__max_val_none:
+                    maxs = (max(maxs, val['max_value'])
+                            if maxs is not None else val['max_value'])
+            else:
+                maxs = None
+                self.__max_val_none = True
         self.__max_val = maxs
 
     def __update_rate(self):
@@ -364,8 +397,10 @@ class ApplicationLayer:
         if resp == 0:
             return web.Response()
         elif resp == 1:
+            del microbit[event_id]
             return web.Response(status=404)
         elif resp == 2:
+            del microbit[event_id]
             return web.Response(status=410)
 
     async def update_sample_rate(self, request: web.Request) -> web.Response:
