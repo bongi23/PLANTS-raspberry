@@ -347,8 +347,9 @@ class ApplicationLayer:
         microbit = self.__microbits.get(microbit_id, None)
         if microbit is None:
             return web.Response()
-        event = microbit.get(event_id, None)
-        if event is None:
+        try:
+            event = microbit[event_id]
+        except:
             return web.Response(status=410)
         del microbit[event_id]
 
