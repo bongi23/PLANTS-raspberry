@@ -60,6 +60,7 @@ DISCONNECTED_PLANT = 5
     new_plant id 4
 
     uint32 microbit_id
+    string description
     char [][] sensors
 
     disconnected_plant id 5
@@ -403,15 +404,15 @@ class ApplicationLayer:
         @serial.listen(COMPONENT_ID, NEW_PLANT, full_payload=True)
         def _(payload):
             msg = DATA(COMPONENT_ID, NEW_PLANT)
-            msg *= 'Ias'
+            msg *= 'Isas'
             msg(payload)
             data = msg.get_data()
             o = dict()
             o['microbit'] = data[0]
-            o['description'] = 'plant'
+            o['description'] = data[1]
             o['connected'] = True
             o['sink'] = False
-            o['sensors'] = [str(x, 'utf-8') for x in data[1]]
+            o['sensors'] = [str(x, 'utf-8') for x in data[2]]
             asyncio.create_task(network_manager.send_put('http://' +
                                                          SERVER_URL + '/sink',
                                                          j=o))
