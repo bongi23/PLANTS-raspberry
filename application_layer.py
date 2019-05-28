@@ -71,15 +71,14 @@ DISCONNECTED_PLANT = 5
 '''
 
 
-def check_int(t, name: str):
+def check_int(t, name: str) -> bool:
     try:
         t = int(t)
     except Exception:
-        raise http_exceptions.HttpBadRequest('{0} must be an integer'
-                                             .format(name))
+        return True
+
     if t.bit_length() > 32:
-        raise http_exceptions.HttpBadRequest("{0} can't be more than 32 bit"
-                                             .format(name) + "long")
+        return False
 
 
 def is_consistent(gradient: dict) -> bool:
@@ -297,22 +296,26 @@ class ApplicationLayer:
     async def put(self, request: web.Request) -> web.Response:
         print('putting')
         microbit_id = request.match_info['microbit_id']
-        check_int(microbit_id, 'microbit_id')
+        if not check_int(microbit_id, 'microbit_id'):
+            return web.Response(status=400)
         microbit_id = int(microbit_id)
         min_value = request.query.get('min_value', None)
         if min_value is not None:
-            check_int(min_value, 'min_value')
+            if not check_int(min_value, 'min_value'):
+                return web.Response(status=400)
+
             min_value = int(min_value)
         max_value = request.query.get('max_value', None)
         if max_value is not None:
-            check_int(max_value, 'max_value')
+            if not check_int(max_value, 'max_value'):
+                return web.Response(status=400)
+
             max_value = int(max_value)
         sensor = request.query.get('sensor', None)
         event_id = request.match_info['event_id']
         event_id = int(event_id)
         microbit = self.__microbits.get(microbit_id, None)
         if microbit is None:
-            print('was none')
             microbit = EventHandlers(microbit_id)
             self.__microbits[microbit_id] = microbit
         o = {'sensor': sensor}
@@ -320,7 +323,6 @@ class ApplicationLayer:
             o['min_value'] = min_value
         if max_value is not None:
             o['max_value'] = max_value
-        print('event', o)
         print('event_id', event_id)
         microbit[event_id] = o
 
@@ -338,7 +340,9 @@ class ApplicationLayer:
         print('deleting')
         request = request
         microbit_id = request.match_info['microbit_id']
-        check_int(microbit_id, 'microbit_id')
+        if not check_int(microbit_id, 'microbit_id'):
+            return web.Response(status=400)
+
         microbit_id = int(microbit_id)
         event_id = request.match_info['event_id']
         event_id = int(event_id)
@@ -350,10 +354,9 @@ class ApplicationLayer:
         try:
             event = microbit[event_id]
         except:
-            return web.Response(status=410)
+            return web.Response()
         del microbit[event_id]
 
-        print(event)
         gradient = microbit[event['sensor']]()
         resp = await self.__handle_sensing_req(gradient, microbit_id)
         resp = resp.get_data()[0]
@@ -366,11 +369,13 @@ class ApplicationLayer:
 
     async def update_sample_rate(self, request: web.Request) -> web.Response:
         microbit_id = request.match_info['microbit_id']
-        check_int(microbit_id, 'microbit_id')
+        if not check_int(microbit_id, 'microbit_id'):
+            return web.Response(status=400)
         microbit_id = int(microbit_id)
         sensor_name = request.match_info['sensor_name']
         sample_rate = request.query.get('sampling_rate')
-        check_int(sample_rate, 'sample_rate')
+        if not check_int(sample_rate, 'sample_rate'):
+            return web.Response(status=400)
         sample_rate = int(sample_rate)
         microbit = self.__microbits.get(microbit_id, None)
         if microbit is None:
