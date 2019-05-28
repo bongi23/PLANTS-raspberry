@@ -345,6 +345,7 @@ class ApplicationLayer:
         event = microbit[event_id]
         del microbit[event_id]
 
+        print(event)
         gradient = microbit[event['sensor']]()
         resp = await self.__handle_sensing_req(gradient, microbit_id)
         resp = resp.get_data()[0]
