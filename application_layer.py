@@ -311,6 +311,7 @@ class ApplicationLayer:
         event_id = int(event_id)
         microbit = self.__microbits.get(microbit_id, None)
         if microbit is None:
+            print('was none')
             microbit = EventHandlers(microbit_id)
             self.__microbits[microbit_id] = microbit
         o = {'sensor': sensor}
