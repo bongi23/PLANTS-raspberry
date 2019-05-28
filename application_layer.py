@@ -75,10 +75,11 @@ def check_int(t, name: str) -> bool:
     try:
         t = int(t)
     except Exception:
-        return True
+        return False
 
     if t.bit_length() > 32:
         return False
+    return True 
 
 
 def is_consistent(gradient: dict) -> bool:
