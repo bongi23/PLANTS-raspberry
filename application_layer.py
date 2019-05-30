@@ -112,6 +112,10 @@ class SensorHandle:
         self.__events = {}
 
     def __setitem__(self, key: int, value: dict):
+        if 'sample_rate' in value:
+            self.__sample_time = value['sample_rate']
+            return
+    
         if 'min_value' in value:
             new_min = value['min_value']
             if self.__min_val is None and not self.__min_val_none:
@@ -135,9 +139,7 @@ class SensorHandle:
         else:
             self.__max_val_none = True
             self.__max_val = None
-
-        if 'sample_rate' in value:
-            self.__sample_time = value['sample_rate']
+ 
         self.__events[key] = value
 
     def __delitem__(self, key: int):
