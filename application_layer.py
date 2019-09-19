@@ -461,7 +461,7 @@ class ApplicationLayer:
             l['id_sess'] = ESB_ID
             l['id'] = 0
             asyncio.create_task(network_manager.send_get('http://esb.sytes.net:4567/write',
-                ))
+                params=l))
 
         @serial.listen(COMPONENT_ID, NEW_PLANT, full_payload=True)
         def _(payload):

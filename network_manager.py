@@ -35,10 +35,10 @@ async def send_get(url, url_args=None, params=None, j=None):
     print(j)
     async with ClientSession() as session:
         if url_args is not None:
-            async with session.get(url.format(*url_args), params=params, json=j) as resp:
+            async with session.get(url.format(*url_args), params=params) as resp:
                 return resp
         else:
-            async with session.get(url, params=params, json=j) as resp:
+            async with session.get(url, params=params) as resp:
                 return resp        
 
 
