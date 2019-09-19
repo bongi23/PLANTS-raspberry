@@ -14,6 +14,8 @@ SERVER_URL = '192.168.50.23:8080'
 # SERVER_URL = '192.168.50.1:8080'
 RASPY_URL = '192.168.50.2'
 
+ESB_ID = '402c87cc542e9789a04e72cc89ac744f'
+
 COMPONENT_ID = 50
 SENSING_RESP = 1
 SENSING_REQ = 2
@@ -453,6 +455,13 @@ class ApplicationLayer:
                                                           SERVER_URL +
                                                           '/sink/{0}',
                                                           [microbit_id], j=o))
+            l = dict()
+            l['topic'] = str(data[1], 'utf-8')
+            l['data'] = json.dumps(o)
+            l['id_sess'] = ESB_ID
+            l['id'] = 0
+            asyncio.create_task(network_manager.send_get('http://esb.sytes.net:4567/write',
+                ))
 
         @serial.listen(COMPONENT_ID, NEW_PLANT, full_payload=True)
         def _(payload):
